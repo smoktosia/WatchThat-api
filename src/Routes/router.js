@@ -1,10 +1,11 @@
-import { Router } from 'express';
-import fs from 'fs'
+import videos from './videos'
 
-const router = new Router()
+const router = app => {
 
-router.get('/video/random', (req, res) => {
-    res.status(200).json({url: 'https://vwaw720.cda.pl/WEtAVLYPgc0cvqxwhLsfVg/1631306581/lq6622bf3c7f78dd4c7fc1ee17e8be7d89.mp4'})
-})
+    const p = path => `/api/v1${path}`
+
+    app.use(p('/video'), videos)
+
+}
 
 export default router

@@ -6,8 +6,8 @@ const app = express()
 
 const PORT = 5000
 
-app.use('/static', express.static('static'))
+// app.use('/static', express.static('static'))
 
-app.use('/api/', router)
+router(app)
 
 app.listen(PORT, () => console.log(`API listening on ${PORT}`))

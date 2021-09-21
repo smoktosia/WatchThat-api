@@ -10,7 +10,10 @@
   "license": "ISC",
   "dependencies": {
     "esm": "^3.2.25",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "ffmpeg": "0.0.4",
+    "got": "^11.8.2",
+    "youtube-dl-exec": "^1.2.6"
   },
   "devDependencies": {
     "nodemon": "^2.0.12"
