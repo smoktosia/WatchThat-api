@@ -1,0 +1,6 @@
+{
+    "skip_ytdl": ["www.youtube.com", "www.twitch.tv"],
+    "supported_types": [
+        "video/mp4", "video/quicktime"
+    ]
+}

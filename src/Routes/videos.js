@@ -2,8 +2,10 @@ import { Router } from 'express';
 import got from 'got'
 
 import youtubedl from 'youtube-dl-exec'
+import isURL from 'validator/es/lib/isURL'
+import { URL } from 'url'
 
-import merge from '../services/mergeAV';
+import v_settings from '../settings/video.json'
 
 const router = new Router()
 
@@ -18,7 +20,30 @@ const headRequest = async url => {
     return { size, contentType }
 }
 
-const compareTypes = contentType => contentType && ['video/mp4'].includes(contentType.split(';')[0])
+const compareTypes = contentType => contentType && v_settings.supported_types.includes(contentType.split(';')[0])
+
+const getStats = async (url, range) => {
+    const { size, contentType } = await headRequest(url)
+
+    if(!compareTypes(contentType))
+        throw Error('invalid_url')
+
+    // parse range
+    const CHUNK_SIZE = 10 ** 6; // 1MB
+    const start = Number(range.replace(/\D/g, ''))
+    const end = Math.min(start + CHUNK_SIZE, size - 1)
+
+    // create headers
+    const contentLength = end - start + 1
+    const headers = {
+        'Content-Range': `bytes ${start}-${end}/${size}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': contentLength,
+        'Content-Type': contentType
+    }
+
+    return [ headers, start, end ]
+}
 
 // routes
 
@@ -28,11 +53,15 @@ router.get('/extract', async (req, res) => {
 
         let url = req.query.url
 
-        if(!url) throw Error('no_url')
+        if(!url || !isURL(url)) throw Error('no_url')
 
         url = decodeURIComponent(url)
 
-        console.log(new URL(url).hostname)
+        const parsedURL = new URL(url)
+
+        if(v_settings.skip_ytdl.includes(parsedURL.hostname)) {
+            return res.status(200).json({url, indirect: true})
+        }
 
         var { size, contentType } = await headRequest(url)
 
@@ -50,17 +79,18 @@ router.get('/extract', async (req, res) => {
                 ytdl = ytdl.split(/\r|\n/)
 
                 // get title
-                const title = ytdl[0].trim()
+                let title
+                if(ytdl.length > 1 && !isURL(ytdl[0])) {
+                    title = ytdl[0].trim()
 
-                // remove title from array
-                ytdl.shift()
+                    // remove title from array
+                    ytdl.shift()
+                }
 
-                // get first url (temp)
-                url = ytdl[0]
-                console.log(ytdl.join('\n\n'))
+                url = ytdl
 
                 // check one more time for video
-                var { size, contentType } = await headRequest(url)
+                var { size, contentType } = await headRequest(url[0])
 
                 console.log(contentType, size)
 
@@ -77,6 +107,10 @@ router.get('/extract', async (req, res) => {
 
         }
 
+        console.log(contentType, size)
+
+        return res.status(200).json({url})
+
     } catch(err) {
         console.log(err)
         return res.status(400).json({err: 'invalid_query'})
@@ -85,45 +119,22 @@ router.get('/extract', async (req, res) => {
 
 })
 
-// const supportedDomains = [
-//     'youtube.com', 'vimeo.com', 'twitch.tv'
-// ]
-
 router.get('/stream', async (req, res) => {
-    let url     = req.query.url
-    const range   = req.headers.range
+    let url = req.query.url
+
+    const range = req.headers.range
 
     // let url = 'https://www.youtube.com/watch?v=AQx_KMoCgJU'
 
-    if(!range) return res.status(400).send('Requires Range header')
-    if(!url || url === 'null') return res.status(400).send({err: 'invalid_url'})
+    if(!range)
+        return res.status(400).json({err: 'Requires Range header'})
+    if(!url || !isURL(url))
+        return res.status(400).json({err: 'invalid_url'})
 
     try {
-
         url = decodeURIComponent(url)
 
-        const { size, contentType } = await headRequest(url)
-
-        if(!compareTypes(contentType))
-            throw Error('invalid_url')
-            // return res.status(400).json({err: 'invalid_url'})
-
-        // parse range
-        const CHUNK_SIZE = 10 ** 6; // 1MB
-        const start = Number(range.replace(/\D/g, ''))
-        const end = Math.min(start + CHUNK_SIZE, size - 1)
-
-        // create headers
-        const contentLength = end - start + 1
-        const headers = {
-            'Content-Range': `bytes ${start}-${end}/${size}`,
-            'Accept-Ranges': 'bytes',
-            'Content-Length': contentLength,
-            'Content-Type': contentType
-        }
-
-        // write head with headers and 206 status (partial content)
-        res.writeHead(206, headers)
+        const [ headers, start, end ] = await getStats(url, range)
 
         // create video read stream for this particular chunk
         const stream = got.stream(url, {
@@ -132,9 +143,14 @@ router.get('/stream', async (req, res) => {
             }
         })
 
+        res.writeHead(206, headers)
+
         stream.pipe(res)
 
+
     } catch(err) {
+
+        console.log(err)
 
         if(err.name === 'TypeError')
             return res.status(400).json({err: 'invalid_request'})
@@ -151,6 +167,53 @@ router.get('/stream', async (req, res) => {
     }
 
 })
+
+// router.get('/stream/merge', async (req, res) => {
+
+//     let
+//         video = req.query.video,
+//         audio = req.query.audio
+
+//     const range = req.headers.range
+
+//     if(!range)
+//         return res.status(400).json({err: 'Requires Range header'})
+
+//     if(!isURL(audio) || !isURL(video))
+//         return res.status(400).json({err: 'invalid_urls'})
+
+//     try {
+
+//         video = decodeURIComponent(video)
+//         audio = decodeURIComponent(audio)
+
+//         const [ headers, start, end ] = await getStats(video, range)
+//         const [ aHeaders, aStart, aEnd ] = await getStats(audio, range)
+
+//         const videoStream = got.stream(video, {
+//             headers: {
+//                 'Range': `bytes=${start}-${end}`
+//             }
+//         })
+
+//         const audioStream = got.stream(audio, {
+//             headers: {
+//                 'Range': `bytes=0-1048576`
+//                 // 'Range': `bytes=${aStart}-${aEnd}`
+//             }
+//         })
+
+//         res.writeHead(206, headers)
+
+//         mergeAV(videoStream, audioStream, res)
+
+//     } catch(err) {
+//         console.log(err)
+
+//         return res.status(400).send('a')
+//     }
+
+// })
 
 
 export default router
