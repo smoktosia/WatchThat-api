@@ -1,11 +1,14 @@
 import User from '../models/User.model';
+import Username from '../models/Username.model'
+
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt'
 
 import { isEmail, isAlphanumeric } from 'validator';
 
 const secret = process.env.JWT_SECRET
 
-async function login (req, res, next) {
+async function login (req, res) {
 
     const _DAY = 86400;
 
@@ -14,7 +17,7 @@ async function login (req, res, next) {
     return res.status(200).send({token, username: req.user.username});
 }
 
-async function register(req, res) {
+async function register(req, res, next) {
 
     const { username, email, password } = req.body;
 
@@ -52,11 +55,40 @@ async function register(req, res) {
             res.status(400).json({ok: false, err: err});
 
         } else {
-            const user = new User({ username, email, password });
 
-            await User.register(user, password);
+            bcrypt.hash(password, 12, async (err, hash) => {
+                if(err)
+                    res.status(500).json({ok: false})
+                else {
+                    try {
+                        const user = new User({ email, password: hash });
 
-            res.status(200).json({ok: true});
+                        await user.save()
+
+                        // res.status(200).json({ok: true})
+
+                        // go and sign user in
+                        next()
+
+                        try {
+                            if(user._id) {
+                                const usernameModel = new Username({ user_id: user._id, username })
+
+                                await usernameModel.save()
+                            }
+
+                        } catch(err) {
+                            // nwm
+                            console.log(err)
+                        }
+
+
+                    } catch(err) {
+                        console.log(err)
+                        res.status(500).json({ok: false})
+                    }
+                }
+            })
         }
 
     } else {

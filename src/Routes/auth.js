@@ -12,6 +12,6 @@ api.get('/', jwtAuth, (req, res) => {
 
 api.post('/login', passport.authenticate('local', {session: false}), AuthService.login)
 
-api.post('/register', AuthService.register)
+api.post('/register', AuthService.register, passport.authenticate('local', {session: false}), AuthService.login)
 
 export default api
