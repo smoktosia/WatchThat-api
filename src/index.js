@@ -1,13 +1,13 @@
 import {} from 'dotenv/config'
 
 import express from 'express'
-import path from 'path'
 
 import { createServer } from 'http'
-import { Server } from 'socket.io'
+import path from 'path'
 
 import database from './services/Database'
 import router from './Routes/router'
+import useSocket from './socket'
 
 import passport from './config/passport'
 
@@ -47,11 +47,9 @@ router(app)
 const PORT = process.env.PORT || 5000
 
 const httpServer = createServer(app)
-const io = new Server(httpServer)
 
-io.on('connection', socket => {
-    console.log('connection')
-})
+useSocket(httpServer)
+
 
 httpServer.listen(PORT)
 

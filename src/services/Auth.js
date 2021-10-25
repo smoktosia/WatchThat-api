@@ -14,7 +14,7 @@ async function login (req, res) {
 
     const token = jwt.sign({ id: req.user._id, username: req.user.username }, secret, { expiresIn: _DAY * 7 });
 
-    return res.status(200).send({token, username: req.user.username});
+    return res.status(200).json({data: {token, username: req.user.username}});
 }
 
 async function register(req, res, next) {
