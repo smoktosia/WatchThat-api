@@ -11,6 +11,8 @@ import useSocket from './socket'
 
 import passport from './config/passport'
 
+import { c } from './utils/color'
+
 const app = express()
 
 // Body parser
@@ -20,7 +22,18 @@ app.use(express.json())
 // DISABLE x-powered-by (USE HELMET LATER)
 app.disable('x-powered-by')
 
-console.log(process.env.NODE_ENV )
+// connect to db
+database()
+
+// passport
+passport()
+
+// add routing
+router(app)
+
+
+// add static path for frontend
+console.log(process.env.NODE_ENV)
 if(process.env.NODE_ENV === 'production') {
 
     // static path for client
@@ -34,22 +47,14 @@ if(process.env.NODE_ENV === 'production') {
 }
 
 
-// connect to db
-database()
-
-// passport
-passport()
-
-// add routing
-router(app)
-
-
 const PORT = process.env.PORT || 5000
 
 const httpServer = createServer(app)
 
 useSocket(httpServer)
 
+httpServer.listen(PORT, (err) => {
 
-httpServer.listen(PORT)
+    console.log(c.listening(`Server listening on ${PORT}`))
 
+})

@@ -1,17 +1,11 @@
 import mongoose from 'mongoose'
-import chalk from 'chalk'
+
+import { c } from '../utils/color'
 
 const { connect, connection } = mongoose
 
 const connectionString = process.env.MONGO_URI
 
-// colors
-const c = {
-    connected:      chalk.bold.cyan,
-    error:          chalk.bold.yellow,
-    disconnected:   chalk.bold.red,
-    termination:    chalk.bold.magenta
-}
 
 export default () => {
 
