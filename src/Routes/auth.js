@@ -7,7 +7,7 @@ import jwtAuth from '../middlewares/jwtAuth'
 const api = Router()
 
 api.get('/', jwtAuth, (req, res) => {
-	res.json({auth: true})
+	res.json({auth: true, _id: req.user._id})
 })
 
 api.post('/login', passport.authenticate('local', {session: false}), AuthService.login)

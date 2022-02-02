@@ -5,40 +5,41 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt'
 
 import { isEmail, isAlphanumeric } from 'validator';
+import errors from '../config/errors.json'
 
 const secret = process.env.JWT_SECRET
 
 async function login (req, res) {
 
-    const _DAY = 86400;
+    const _DAY = 86400
 
-    const token = jwt.sign({ id: req.user._id, username: req.user.username }, secret, { expiresIn: _DAY * 7 });
+    const token = jwt.sign({ id: req.user._id, username: req.user.username }, secret, { expiresIn: _DAY * 7 })
 
-    return res.status(200).json({data: {token, username: req.user.username}});
+    return res.status(200).json({data: {token, _id: req.user._id}})
 }
 
 async function register(req, res, next) {
 
-    const { username, email, password } = req.body;
+    const { username, email, password } = req.body
 
-    const err = [];
+    const err = []
 
     if(!username)
-        err.push({'username': 'noUsername'})
+        err.push({'username': errors.noUsername})
     else if(username.length < 3 || username.lenght > 20)
-        err.push({'username': 'usernameLength'});
+        err.push({'username': errors.usernameLength})
     else if(!isAlphanumeric(username))
-        err.push({'username' : 'usernameAlphanumeric'});
+        err.push({'username' : errors.usernameAlphanumeric})
 
     if(!email)
-        err.push({'email': 'noEmail'})
+        err.push({'email': errors.noEmail})
     else if(!isEmail(email))
-        err.push({'email' : 'emailFormat'});
+        err.push({'email' : errors.emailFormat})
 
     if(!password)
-        err.push({'password': 'noPassword'})
+        err.push({'password': errors.noPassword})
     else if(password.length <= 6)
-        err.push({'password' : 'passwordLength'});
+        err.push({'password' : errors.passwordLength})
 
     if(err.length === 0) {
         const _email = req.body.email.toLowerCase()
@@ -49,7 +50,7 @@ async function register(req, res, next) {
         if(response) {
 
             if(response.email === _email) {
-                err.push({'email' : 'emailTaken'});
+                err.push({'email' : errors.emailTaken});
             }
 
             res.status(400).json({ok: false, err: err});
