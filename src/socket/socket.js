@@ -1,8 +1,9 @@
 import { Server } from 'socket.io'
 import jwt from 'jsonwebtoken'
 
-import getHandlers from './handlers'
+import { log } from './helpers'
 
+import getHandlers from './handlers'
 
 export default httpServer => {
 
@@ -18,10 +19,15 @@ export default httpServer => {
         const token = socket.handshake.auth.token
 
         if(token) {
-            console.log('user authed')
-            console.log(jwt.verify(token, process.env.JWT_SECRET))
+            const verify = jwt.verify(token, process.env.JWT_SECRET)
+            if(!!verify) {
+                log(`user ${verify.id} authed`)
+                socket.user = verify.id
+                return next()
+            }
         }
-        else console.log('user not authed')
+
+        log('user not authed')
 
         next()
     })
@@ -31,14 +37,13 @@ export default httpServer => {
 
         const handlers = getHandlers(socket)
 
+        // room actions
         socket.on('room_join', handlers.roomJoin)
-
         socket.on('room_leave', handlers.roomLeave)
+        socket.on('disconnect', handlers.roomLeave)
 
-        // socket.on('disconnect', handlers.roomLeave)
-        socket.on('disconnect', (reason) => {
-            console.log(reason)
-        })
+        // video actions
+        socket.on('new video', handlers.newVideo)
 
     })
 

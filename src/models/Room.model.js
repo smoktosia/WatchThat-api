@@ -1,5 +1,19 @@
 import mongoose, { Schema } from 'mongoose'
 
+// const MemberSchema = new Schema({
+//     username: {
+//         type: String,
+//         required: true,
+//     },
+//     user_id: {
+//         type: mongoose.Types.ObjectId
+//     },
+//     socket_id: {
+//         type: String,
+//         required: true
+//     }
+// })
+
 const RoomSchema = new Schema({
     clearId: {
         type: String,
@@ -14,11 +28,32 @@ const RoomSchema = new Schema({
                 type: String,
                 required: true,
             },
-            db_id: {
+            user_id: {
                 type: mongoose.Types.ObjectId
+            },
+            socket_id: {
+                type: String,
+                required: true
             }
+        }
+    ],
+    videos: [
+        {
+            username: {
+                type: String,
+            },
+            username_id: {
+                type: mongoose.Types.ObjectId
+            },
+            url: {
+                required: true,
+                type: String
+            }
+
         }
     ],
 }, { timestamps: true, collection: 'Rooms' })
 
 export default mongoose.model('Room', RoomSchema)
+
+// export { MemberSchema }

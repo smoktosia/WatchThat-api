@@ -7,6 +7,8 @@ const c = {
     termination:    chalk.bold.magenta,
 
     listening:      chalk.bold.green,
+
+    bold:           chalk.bold.white
 }
 
 export  { c }

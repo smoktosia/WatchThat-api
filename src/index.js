@@ -13,6 +13,9 @@ import passport from "./config/passport";
 
 import { c } from "./utils/color";
 
+console.clear();
+console.log(c.bold(`Starting server in ${process.env.NODE_ENV} mode`))
+
 const app = express();
 
 // Body parser
@@ -42,7 +45,6 @@ app.all("*", (req, res, next) => {
 router(app);
 
 // add static path for frontend
-console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === "production") {
   // static path for client
   app.use(express.static(path.join(__dirname, "../client/build")));
