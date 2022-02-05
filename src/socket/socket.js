@@ -35,7 +35,7 @@ export default httpServer => {
 
     io.on('connection', socket => {
 
-        const handlers = getHandlers(socket)
+        const handlers = getHandlers(io, socket)
 
         // room actions
         socket.on('room_join', handlers.roomJoin)
@@ -44,6 +44,9 @@ export default httpServer => {
 
         // video actions
         socket.on('new video', handlers.newVideo)
+        socket.on('playing state', handlers.playingState)
+        socket.on('seek', handlers.seek)
+        socket.on('send video state', handlers.sendVideoState)
 
     })
 

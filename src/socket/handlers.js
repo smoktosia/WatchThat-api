@@ -6,7 +6,7 @@ import Username from '../models/Username.model'
 
 import { log, findIndexInMembers } from './helpers'
 
-const handlers = (socket) => {
+const handlers = (io, socket) => {
     const roomJoin = async ({clearId, username}) => {
 
         try {
@@ -44,6 +44,15 @@ const handlers = (socket) => {
 
                     socket.emit('room_joined')
                     socket.to(clearId).emit('user_joined', username)
+
+                    // get video
+                    if(room.videos && room.videos.length > 0) {
+                        const video = room.videos.at(-1)
+
+                        socket.emit('set video', {video: video.data, username: video.username})
+
+                        socket.to(socket.room.clearId).emit('get video state', socket.id)
+                    }
                 }
 
                 if(userIndex < 0) {
@@ -122,14 +131,57 @@ const handlers = (socket) => {
 
         }
 
-    const newVideo = (data) => {
-        if(!socket.room || !socket.username) return
+    const newVideo = async (data) => {
+        if(!socket.room || !socket.username || !data || !data.url) return
 
-        socket.to(socket.room.clearId).emit('set video', ({video: data, username: socket.username}))
-        // save video to db
+        try {
+            const room = await Room.findOne({_id: socket.room._id})
+
+            if(!room)
+                return
+
+            if(!room.videos)
+                room.videos = []
+
+            console.log(data)
+            room.videos.push({
+                data,
+                username: socket.username,
+                user_id: socket.user || undefined
+            })
+
+            room.save()
+
+            socket.to(socket.room.clearId).emit('set video', ({video: data, username: socket.username}))
+        } catch(err) {
+            console.error(err)
+        }
     }
 
-    return { roomJoin, roomLeave, newVideo }
+    const playingState = (state) => {
+        if(!socket.room || !socket.username || typeof state === 'undefined') return
+        socket.to(socket.room.clearId).emit('playing state', {state, username: socket.username})
+    }
+
+    const seek = (time) => {
+        if(!socket.room || !socket.username || !time) return
+
+        socket.to(socket.room.clearId).emit('seek', time)
+    }
+
+    const sendVideoState = ({progress, playing, target, timestamp}) => {
+        if(!socket.room || !socket.username || !progress || !target || !timestamp || timestamp > Date.now()) return
+
+        console.log('aaaaaa')
+
+        io.to(target).emit('set video state', {progress, playing, timestamp})
+    }
+
+    return {
+        roomJoin, roomLeave,
+        newVideo, playingState, seek,
+        sendVideoState
+    }
 }
 
 

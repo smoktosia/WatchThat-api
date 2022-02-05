@@ -41,13 +41,15 @@ const RoomSchema = new Schema({
         {
             username: {
                 type: String,
+                required: true,
             },
-            username_id: {
+            user_id: {
                 type: mongoose.Types.ObjectId
             },
-            url: {
-                required: true,
-                type: String
+            data: {
+                url: [String],
+                indirect: Boolean,
+                hostname: String
             }
 
         }
