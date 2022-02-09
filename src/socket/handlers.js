@@ -43,7 +43,7 @@ const handlers = (io, socket) => {
                     socket.join(clearId)
 
                     socket.emit('room_joined')
-                    socket.to(clearId).emit('user_joined', username)
+                    socket.to(clearId).emit('user_joined', {username, socketId: socket.id, _id: socket.user || null})
 
                     // get video
                     if(room.videos && room.videos.length > 0) {
@@ -53,6 +53,9 @@ const handlers = (io, socket) => {
 
                         socket.to(socket.room.clearId).emit('get video state', socket.id)
                     }
+
+                    // TODO: get members
+                    console.log(socket.handshake.address)
                 }
 
                 if(userIndex < 0) {
@@ -90,7 +93,7 @@ const handlers = (io, socket) => {
     }
 
     const roomLeave = async () => {
-        if(!socket.room || !socket.id) return
+        if(!socket.room || !socket.room.clearId || !socket.id) return
 
         log(`${socket.username} leaves room ${socket.room ? socket.room.clearId : 'unknown'}`)
 
