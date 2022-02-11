@@ -54,8 +54,69 @@ const handlers = (io, socket) => {
                         socket.to(socket.room.clearId).emit('get video state', socket.id)
                     }
 
-                    // TODO: get members
-                    console.log(socket.handshake.address)
+                    // get members (+clear)
+                    if(room.members && room.members.length > 0) {
+                        (async () => {
+
+                            let attemps = 10
+
+                            while(attemps > 0) {
+                                attemps--
+
+                                try {
+                                    const idsInSocket = []
+
+                                    io.sockets.sockets.forEach((s) => {
+                                        if(s.room && s.room.clearId === clearId)
+                                            idsInSocket.push(s.id)
+                                    })
+
+                                    const notConnectedInDb = []
+                                    room.members.forEach(({socket_id}, i) => {
+                                        if(!idsInSocket.includes(socket_id))
+                                            notConnectedInDb.push(i)
+
+                                    })
+
+                                    notConnectedInDb.forEach(index => {
+                                        room.members.splice(index, 1)
+                                    })
+
+                                    const saved = await room.save()
+
+                                    if(saved) {
+                                        const members = []
+                                        saved.members.forEach(({username, user_id, socket_id}) => {
+                                            if(socket_id === socket.id)
+                                                return
+                                            members.push({username, socketId: socket_id, _id: user_id || null})
+                                        })
+
+                                        // if(members.length > 0)
+                                        socket.emit('set_members_list', members)
+
+                                        break
+                                    }
+
+                                } catch(err) {
+                                    if(err.name === 'VersionError') {
+                                        console.log(err.name)
+                                        room = await Room.findOne({clearId})
+                                        if(room) continue
+                                        else return
+                                    }
+                                    else console.error(err)
+                                }
+
+                            }
+
+                        })()
+                    } else {
+                        socket.emit('set_members_list', null)
+                    }
+
+
+                    // console.log(socket.handshake.address)
                 }
 
                 if(userIndex < 0) {
@@ -74,9 +135,7 @@ const handlers = (io, socket) => {
                     const saved = await room.save()
 
                     if(saved) {
-
-                        saveDataToSocket(socket, room, username)
-
+                        saveDataToSocket(socket, saved, username)
                     } else throw Error('room update error')
                 } else {
                     saveDataToSocket(socket, room, username)
@@ -93,39 +152,64 @@ const handlers = (io, socket) => {
     }
 
     const roomLeave = async () => {
-        if(!socket.room || !socket.room.clearId || !socket.id) return
+        if(!socket.room || !socket.room.clearId || !socket.room._id || !socket.id) return
 
         log(`${socket.username} leaves room ${socket.room ? socket.room.clearId : 'unknown'}`)
 
         try {
 
-            const room = await Room.findOne({_id: socket.room._id})
+            const room_id = socket.room._id
+            const socketId = socket.id
+            const user_id = socket.user || null
+
+            let room = await Room.findOne({_id: room_id})
 
             if(room) {
 
-                if(!room.members) return
+                let attemps = 10
 
-                const userIndex = findIndexInMembers(room, socket)
+                while(attemps > 0) {
 
-                log('userIndex: ', userIndex)
+                    attemps--
 
-                if(userIndex < 0)
-                    return
+                    try {
 
-                if(room.members.length <= 1)
-                    room.members = null
-                else
-                    room.members.splice(userIndex, 1)
+                        if(!room.members || !Array.isArray(room.members)) return
+                        const userIndex = findIndexInMembers(room, socket)
 
-                room.save()
+                        if(userIndex < 0)
+                            return
 
-                const clearId = socket.room.clearId
+                        if(room.members.length <= 1)
+                            room.members = null
+                        else
+                            room.members.splice(userIndex, 1)
+
+                        if(await room.save())
+                            break
+
+
+                    } catch(err) {
+
+                        if(err.name === 'VersionError') {
+                            room = await Room.findOne({_id: room_id})
+                            if(room) continue
+                            else return
+                        }
+
+                    }
+
+                }
+
+                const clearId = room.clearId
 
                 socket.emit('room_leaved')
-                socket.leave(clearId)
-                log(`${socket.id} leaved from ${clearId}`)
-                socket.to(clearId).emit('user_leaved', socket.id)
+                socket.to(clearId).emit('user_leaved', {socketId, _id: user_id})
                 socket.room = null
+
+                socket.leave(clearId)
+                log(`${socketId} leaved from ${clearId}`)
+
             }
 
          } catch(err) {
@@ -146,7 +230,6 @@ const handlers = (io, socket) => {
             if(!room.videos)
                 room.videos = []
 
-            console.log(data)
             room.videos.push({
                 data,
                 username: socket.username,
@@ -174,8 +257,6 @@ const handlers = (io, socket) => {
 
     const sendVideoState = ({progress, playing, target, timestamp}) => {
         if(!socket.room || !socket.username || !progress || !target || !timestamp || timestamp > Date.now()) return
-
-        console.log('aaaaaa')
 
         io.to(target).emit('set video state', {progress, playing, timestamp})
     }

@@ -8,7 +8,7 @@ import getHandlers from './handlers'
 export default httpServer => {
 
     const io = new Server(httpServer, {
-        path: '/socket',
+        path: '/api/socket',
         cors: {
             origin: '*',
             methods: ['GET', 'POST']
