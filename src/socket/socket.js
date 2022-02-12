@@ -48,6 +48,9 @@ export default httpServer => {
         socket.on('seek', handlers.seek)
         socket.on('send video state', handlers.sendVideoState)
 
+        // chat
+        socket.on('new message', handlers.sendMessage)
+
     })
 
 }

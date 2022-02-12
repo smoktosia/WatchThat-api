@@ -261,10 +261,32 @@ const handlers = (io, socket) => {
         io.to(target).emit('set video state', {progress, playing, timestamp})
     }
 
+    const sendMessage = (msg) => {
+        if(!socket.room || !socket.username || !msg) return
+
+        try {
+            if(!msg.content || msg.content.trim().length < 1) 'message_content'
+            if(!msg.socketId || msg.socketId !== socket.id) throw 'message_socket_id'
+            if(!msg.username || msg.username !== socket.username) throw 'message_username'
+            if(!msg.msgId) throw 'message_id'
+
+            // send to others
+            socket.to(socket.room.clearId).emit('message received', msg)
+            // send to self
+            socket.emit('message sent', msg.msgId)
+
+        } catch(err) {
+            console.log(err)
+        }
+
+
+    }
+
     return {
         roomJoin, roomLeave,
         newVideo, playingState, seek,
-        sendVideoState
+        sendVideoState,
+        sendMessage
     }
 }
 
