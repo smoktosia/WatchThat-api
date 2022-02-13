@@ -4,7 +4,9 @@
   "description": "",
   "main": "./src/index.js",
   "scripts": {
-    "start": "nodemon -r esm ./src/index.js"
+    "start": "npm run dev",
+    "dev": "nodemon -r esm ./src/index.js",
+    "prod": "NODE_ENV=production PORT=8080 node -r esm ./src/index.js"
   },
   "author": "",
   "license": "ISC",
