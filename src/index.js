@@ -18,6 +18,9 @@ console.log(c.bold(`Starting server in ${process.env.NODE_ENV} mode`))
 
 const app = express();
 
+// helmet
+app.use(helmet())
+
 // Body parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
