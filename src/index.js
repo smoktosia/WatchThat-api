@@ -4,7 +4,7 @@ import express from "express";
 
 import { createServer } from "http";
 import path from "path";
-import helmet from 'helmet'
+import helmet, { contentSecurityPolicy, crossOriginEmbedderPolicy } from 'helmet'
 
 import database from "./services/Database";
 import router from "./Routes/router";
@@ -19,15 +19,32 @@ console.log(c.bold(`Starting server in ${process.env.NODE_ENV} mode`))
 
 const app = express();
 
-// helmet
-app.use(helmet())
+
+// helmet TODO: change COEP with working yt player ;/
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+      fontSrc: ["fonts.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'www.youtube.com'],
+      frameSrc: ['youtube.com', 'www.youtube.com'],
+      objectSrc: ["'none'"],
+    }
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}))
+
+
+app.disable("x-powered-by");
 
 // Body parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// DISABLE x-powered-by (USE HELMET LATER)
-app.disable("x-powered-by");
+
 
 // connect to db
 const connection = database();
