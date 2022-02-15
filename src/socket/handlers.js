@@ -54,7 +54,7 @@ const handlers = (io, socket) => {
                         socket.to(socket.room.clearId).emit('get video state', socket.id)
                     }
 
-                    // get members (+clear)
+                    // get members (+clear inactives)
                     if(room.members && room.members.length > 0) {
                         (async () => {
 
