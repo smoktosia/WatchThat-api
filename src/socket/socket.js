@@ -16,6 +16,9 @@ export default httpServer => {
     })
 
     io.use((socket, next) => {
+
+        // FIXME: ebSocket connection to 'ws' failed: Error during WebSocket handshake: Unexpected response code: 400
+
         const token = socket.handshake.auth.token
 
         if(token) {
